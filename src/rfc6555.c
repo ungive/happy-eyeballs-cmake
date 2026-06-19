@@ -238,17 +238,47 @@ int rfc6555_connect(rfc6555_ctx *ctx, int sockfd, struct addrinfo **rp)
 	}
 
 	for(i=0; i<ctx->len; i++) {
-		if(FD_ISSET(ctx->fds[i], &readfds)
-		   || FD_ISSET(ctx->fds[i], &writefds)
-		) {
-			fd = ctx->fds[i];
-			ctx->successful_fd = i;
-			break;
-		} else if(FD_ISSET(ctx->fds[i], &errorfds)) {
-			/* Neutralise erroneous fd */
+		if (ctx->fds[i] < 0) {
+			continue;
+		}
+		if (FD_ISSET(ctx->fds[i], &readfds) ||
+			FD_ISSET(ctx->fds[i], &writefds) ||
+			FD_ISSET(ctx->fds[i], &errorfds)) {
+#ifdef _WIN32
+			int so_error;
+			int len = sizeof(so_error);
+#else
+			int so_error;
+			socklen_t len = sizeof(so_error);
+#endif
+			getsockopt(
+				ctx->fds[i],
+				SOL_SOCKET,
+				SO_ERROR,
+				(char *)&so_error,
+				&len
+			);
+
+			if (so_error == 0) {
+				/* connection succeeded */
+				fd = ctx->fds[i];
+				ctx->successful_fd = i;
+				break;
+			}
+
+			/*
+			* Connection failed.
+			* Remove this socket from future select() calls.
+			*/
 			ctx->fds[i] = -1;
 			ctx->original_flags[i] = -1;
 			ctx->rps[i] = NULL;
+
+#ifdef _WIN32
+			closesocket(fd);
+#else
+			close(fd);
+#endif
 		}
 	}
 
