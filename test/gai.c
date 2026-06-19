@@ -46,7 +46,11 @@ int connect_host(char *host, char *service) {
 				rp->ai_family);
 		sfd = socket(rp->ai_family, rp->ai_socktype,
 				rp->ai_protocol);
-		if (sfd == -1)
+#ifdef _WIN32
+		if(sfd == INVALID_SOCKET)
+#else
+		if(sfd < 0)
+#endif
 			continue;
 
 		if (connect(sfd, rp->ai_addr, rp->ai_addrlen) != -1)
