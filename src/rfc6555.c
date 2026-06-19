@@ -105,6 +105,7 @@ static int rfc6555_context_grow(rfc6555_ctx *ctx)
 	ALLOC_FIELD(ctx->fds, int, new_len);
 	ALLOC_FIELD(ctx->original_flags, int, new_len);
 	ALLOC_FIELD(ctx->rps, struct addrinfo*, new_len);
+	ctx->max_len = new_len;
 
 	return 0;
 }
