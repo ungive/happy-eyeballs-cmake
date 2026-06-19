@@ -1,6 +1,6 @@
 The files in this project come under a variety of licenses:
-* rfc6555.c and rfc6555.h are licensed under the GNU Lesser General Public
-  License version 3 or later
+* src/rfc6555.c and include/happy-eyeballs/rfc6555.h are licensed under the
+  GNU Lesser General Public License version 3 or later
 * the Example code from the getaddrinfo(3) manpage is licensed under the terms
   available at http://man7.org/linux/man-pages/man3/getaddrinfo.3.license.html
 * all other files are licensed under the GNU General Public License version 3 or

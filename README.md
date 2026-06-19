@@ -6,30 +6,48 @@ The aim is to provide a (almost) drop-in replacement to the standard [`connect`(
 system call, so it can be used in the Example loop from [`getaddrinfo`(3)], for
 ease of integration in existing projects.
 
-
-## Get it
-
-The [authoritative source for this project can be found
-here](https://scm.narf.ssji.net/git/happy-eyeballs-c/), but [a mirror is
-maintained in sync on GitHub](https://github.com/shtrom/happy-eyeballs-c).
-You can clone the latest version with either
-
-    git clone https://scm.narf.ssji.net/git/happy-eyeballs-c
-
-or
-
-    git clone https://github.com/shtrom/happy-eyeballs-c
-
-
 ## Try it
 
-Just run
+```
+gai_test --listen 1025
+gai_test localhost 1025
+```
 
-    make test
+```
+happy_test --listen 1025
+happy_test localhost 1025
+```
 
-to build and run various combinations of tests (pay attention to the names of
-the binaries, as well as the amount of time elapsed).
+The listener already only listens on IPv4, which properly tests Happy Eyeballs.
 
+You can also block IPv6 in your firewall:
+
+```
+# Linux
+sudo ip6tables -I INPUT -p tcp --dport 1025 -j DROP
+# Restore:
+sudo ip6tables -I INPUT -p tcp --dport 1025 -j DROP
+```
+```
+# Mac
+block drop inet6 proto tcp to any port 1025
+sudo pfctl -f /etc/pf.conf
+sudo pfctl -e
+# Restore:
+sudo pfctl -d
+```
+```
+# Windows
+New-NetFirewallRule `
+    -DisplayName "HappyEyeballs IPv6 Test" `
+    -Direction Inbound `
+    -Protocol TCP `
+    -LocalPort 1025 `
+    -Action Block
+# Restore:
+Remove-NetFirewallRule `
+    -DisplayName "HappyEyeballs IPv6 Test"
+```
 
 ## Use it
 
@@ -82,29 +100,22 @@ of this writing.
  		fprintf(stderr, "failed! (last attempt)\n");
 ```
 
-## TODO
-
-* Review and (maybe) implement [rfc8305];
-* Make this an actual library with autoconf and all.
-
-
 ## Authors
 
 This implementation:
 * Olivier Mehani <shtrom@ssji.net>, 2019
+* Jonas van den Berg, 2026
 
 The [`getaddrinfo`(3)] Example code:
 * Sam Varshavchik <mrsam@courier-mta.com>, 2000
 * Ulrich Drepper <drepper@redhat.com>, 2006
 * Michael Kerrisk <mtk.manpages@gmail.com>, 2007, 2008
 
-
 ## Licenses
 
 The drop-in file and the accompanying headers are under LGPL-3.0-or-later; the
 rest is under GPL-3.0-or-later, except for the Example code from
 [`getaddrinfo`(3)], for which terms can be found at [gai-example-license].
-
 
 [rfc6555]: https://tools.ietf.org/rfcmarkup/6555
 [rfc8305]: https://tools.ietf.org/rfcmarkup/8305

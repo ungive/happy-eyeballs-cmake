@@ -7,10 +7,15 @@
 #include <string.h>
 #include <stdlib.h>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
+#endif
 
 int connect_host(char *host, char *service) {
 	struct addrinfo hints;
@@ -49,7 +54,11 @@ int connect_host(char *host, char *service) {
 
 		fprintf(stderr, " failed!\n");
 		perror("error: connecting: ");
+#ifdef _WIN32
+		closesocket(sfd);
+#else
 		close(sfd);
+#endif
 	}
 
 	if (rp == NULL) {               /* No address succeeded */

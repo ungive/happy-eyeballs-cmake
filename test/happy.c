@@ -7,12 +7,17 @@
 #include <string.h>
 #include <stdlib.h>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
+#endif
 
-#include "rfc6555.h"
+#include "happy-eyeballs/rfc6555.h"
 
 int connect_host(char *host, char *service) {
 	struct addrinfo hints;

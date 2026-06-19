@@ -1,74 +1,24 @@
 /*
  * Simple C implementation of [rfc6555] (Happy Eyeballs)
  * Copyright (C) 2019 Olivier Mehani <shtrom@ssji.net>
+ * Copyright (C) 2026 Jonas van den Berg
  *
  * SPDX-License-Identifier: LGPL-3.0-or-later
- *
- * The aim is to provide a (almost) drop-in replacement to the standard
- * [`connect`(3)] system call, so it can be used in the Example loop from
- * [`getaddrinfo`(3)], for ease of integration in existing projects.
- *
- * The latest version of this code is available in Git from:
- *  * https://scm.narf.ssji.net/git/happy-eyeballs-c (authoritative)
- *  * https://github.com/shtrom/happy-eyeballs-c (mirror)
- *
- * What follows is an example diff between a simple GAI implementation based on
- * the manpage, and the updated version to use this drop-in.
- *
- *	--- gai.c	2019-07-10 21:39:59.827667939 +1000
- *	+++ happy.c	2019-07-12 17:15:06.288931156 +1000
- *	@@ -12,10 +12,13 @@
- *	 #include <netdb.h>
- *	 #include <unistd.h>
- *
- *	+#include "rfc6555.h"
- *	+
- *	 int connect_host(char *host, char *service) {
- *		struct addrinfo hints;
- *		struct addrinfo *result, *rp;
- *		int sfd, s;
- *	+	rfc6555_ctx *ctx;
- *
- *		memset(&hints, 0, sizeof(struct addrinfo));
- *		hints.ai_family = AF_UNSPEC;    // Allow IPv4 or IPv6
- *	@@ -34,6 +37,9 @@
- *		  // If socket(2) (or connect(2)) fails, we (close the socket
- *		  // and) try the next address.
- *
- *	+	rfc6555_reorder(result);
- *	+	ctx = rfc6555_context_create();
- *	+
- *		for (rp = result; rp != NULL; rp = rp->ai_next) {
- *			fprintf(stderr, "connecting using rp %p (%s, af %d) ...",
- *					rp,
- *	@@ -44,13 +50,13 @@
- *			if (sfd == -1)
- *				continue;
- *
- *	-		if (connect(sfd, rp->ai_addr, rp->ai_addrlen) != -1)
- *	+		if ((sfd = rfc6555_connect(ctx, sfd, &rp)) != -1)
- *				break;                  // Success
- *
- *			fprintf(stderr, " failed!\n");
- *			perror("error: connecting: ");
- *	-		close(sfd);
- *		}
- *	+	rfc6555_context_destroy(ctx);
- *
- *		if (rp == NULL) {               // No address succeeded
- *			fprintf(stderr, "failed! (last attempt)\n");
- *
- * [rfc6555]: https://tools.ietf.org/rfcmarkup/6555
  */
 #include <stdlib.h>
-#include <netdb.h>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <netdb.h>
 #include <fcntl.h>
 #include <sys/select.h>
+#endif
 
 #include <errno.h>
 
-#include "rfc6555.h"
+#include "happy-eyeballs/rfc6555.h"
 
 /* Minimal amount of entries to allocate in the context
  *
@@ -178,7 +128,11 @@ void rfc6555_context_destroy(rfc6555_ctx *ctx)
 		for (i=0; i<ctx->len; i++) {
 			/* Cleanup all but the successful sockfd */
 			if (ctx->successful_fd != i) {
+#ifdef _WIN32
+				closesocket(ctx->fds[i]);
+#else
 				close(ctx->fds[i]);
+#endif
 			}
 		}
 		free(ctx->fds);
@@ -221,12 +175,27 @@ int rfc6555_reorder(struct addrinfo *result)
 int rfc6555_connect(rfc6555_ctx *ctx, int sockfd, struct addrinfo **rp)
 {
 	int fd = -1, maxfd = -1;
-	int flags;
+	/* Flags are unused on Windows. */
+	int flags = 0;
 	int i;
 	fd_set readfds, writefds, errorfds;
 	struct timeval timeout = { 0, CONNECT_TIMEOUT_MS * 1000 }, *timeoutp = &timeout;
 
-	flags = fcntl(sockfd, F_GETFL,0);
+#ifdef _WIN32
+	u_long mode = 1;
+	ioctlsocket(sockfd, FIONBIO, &mode);
+
+	if (connect(sockfd, (*rp)->ai_addr, (*rp)->ai_addrlen) == SOCKET_ERROR) {
+		int err = WSAGetLastError();
+		if (err != WSAEWOULDBLOCK && err != WSAEINPROGRESS) {
+			/* Always reset to blocking mode on Windows. */
+			mode = 0;
+			ioctlsocket(sockfd, FIONBIO, &mode);
+			return -1;
+		}
+	}
+#else
+	flags = fcntl(sockfd, F_GETFL, 0);
 	fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
 
 	if(connect(sockfd, (*rp)->ai_addr, (*rp)->ai_addrlen) < 0
@@ -235,9 +204,13 @@ int rfc6555_connect(rfc6555_ctx *ctx, int sockfd, struct addrinfo **rp)
 		fcntl(sockfd, F_SETFL, flags);
 		return -1;
 	}
+#endif
+
 	rfc6555_context_append(ctx, sockfd, *rp, flags);
 
 	FD_ZERO(&readfds);
+	FD_ZERO(&writefds);
+	FD_ZERO(&errorfds);
 	for(i=0; i<ctx->len; i++) {
 		if(ctx->fds[i]<0) {
 			continue;
@@ -281,7 +254,13 @@ int rfc6555_connect(rfc6555_ctx *ctx, int sockfd, struct addrinfo **rp)
 	if (-1 != ctx->successful_fd) {
 		i = ctx->successful_fd;
 		fd = ctx->fds[i];
+#ifdef _WIN32
+		/* Always reset to blocking mode on Windows. */
+		mode = 0;
+		ioctlsocket(fd, FIONBIO, &mode);
+#else
 		fcntl(fd, F_SETFL, ctx->original_flags[i]);
+#endif
 		*rp = ctx->rps[i];
 	}
 	return fd;

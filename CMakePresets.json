@@ -1,0 +1,149 @@
+{
+  "version": 8,
+  "configurePresets": [
+    {
+      "name": "linux-gcc",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}",
+        "CMAKE_C_COMPILER": "/usr/bin/gcc",
+        "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "1"
+      },
+      "hidden": true
+    },
+    {
+      "name": "linux-gcc-x86_64-debug",
+      "displayName": "Linux: x86_64 Debug (GCC)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "inherits": [
+        "linux-gcc"
+      ]
+    },
+    {
+      "name": "linux-gcc-x86_64-release",
+      "displayName": "Linux: x86_64 Release (GCC)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "inherits": [
+        "linux-gcc"
+      ]
+    },
+    {
+      "name": "windows-msvc",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+        "CMAKE_C_FLAGS": "/MP",
+        "CMAKE_CXX_FLAGS": "/MP"
+      },
+      "hidden": true
+    },
+    {
+      "name": "windows-msvc-x86_64-debug",
+      "displayName": "Windows: x86_64 Debug (MSVC)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "inherits": [
+        "windows-msvc"
+      ]
+    },
+    {
+      "name": "windows-msvc-x86_64-release",
+      "displayName": "Windows: x86_64 Release (MSVC)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "inherits": [
+        "windows-msvc"
+      ]
+    },
+    {
+      "name": "mac-clang",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "/usr/bin/clang",
+        "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+      },
+      "hidden": true
+    },
+    {
+      "name": "mac-clang-armv8-debug",
+      "displayName": "Mac: armv8 Debug (Clang)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "inherits": [
+        "mac-clang"
+      ]
+    },
+    {
+      "name": "mac-clang-armv8-release",
+      "displayName": "Mac: armv8 Release (Clang)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "inherits": [
+        "mac-clang"
+      ]
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "linux-gcc-x86_64-debug",
+      "displayName": "Debug",
+      "configurePreset": "linux-gcc-x86_64-debug",
+      "configuration": "Debug",
+      "jobs": 16
+    },
+    {
+      "name": "linux-gcc-x86_64-release",
+      "displayName": "Release",
+      "configurePreset": "linux-gcc-x86_64-release",
+      "configuration": "Release",
+      "jobs": 16
+    },
+    {
+      "name": "windows-msvc-x86_64-debug",
+      "displayName": "Debug",
+      "configurePreset": "windows-msvc-x86_64-debug",
+      "configuration": "Debug",
+      "nativeToolOptions": [
+        "/m:16",
+        "/p:CL_MPcount=12"
+      ]
+    },
+    {
+      "name": "windows-msvc-x86_64-release",
+      "displayName": "Release",
+      "configurePreset": "windows-msvc-x86_64-release",
+      "configuration": "Release",
+      "nativeToolOptions": [
+        "/m:16",
+        "/p:CL_MPcount=12"
+      ]
+    },
+    {
+      "name": "mac-clang-armv8-debug",
+      "displayName": "Debug",
+      "configurePreset": "mac-clang-armv8-debug",
+      "configuration": "Debug",
+      "jobs": 8
+    },
+    {
+      "name": "mac-clang-armv8-release",
+      "displayName": "Release",
+      "configurePreset": "mac-clang-armv8-release",
+      "configuration": "Release",
+      "jobs": 8
+    }
+  ]
+}
