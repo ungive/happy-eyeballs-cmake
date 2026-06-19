@@ -22,7 +22,7 @@ typedef struct {
 	struct addrinfo* *rps;
 	size_t len;
 	size_t max_len;
-	int successful_fd;
+	int successful_fd_idx;
 } rfc6555_ctx;
 
 /* Create context */

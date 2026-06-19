@@ -43,7 +43,7 @@ rfc6555_ctx *rfc6555_context_create()
 	ctx->rps = NULL;
 	ctx->len = 0;
 	ctx->max_len = 0;
-	ctx->successful_fd = -1;
+	ctx->successful_fd_idx = -1;
 
 	if(rfc6555_context_grow(ctx) < 0) {
 		rfc6555_context_destroy(ctx);
@@ -128,7 +128,7 @@ void rfc6555_context_destroy(rfc6555_ctx *ctx)
 	if(ctx->fds) {
 		for (i=0; i<ctx->len; i++) {
 			/* Cleanup all but the successful sockfd */
-			if (ctx->successful_fd != i) {
+			if (ctx->successful_fd_idx != i) {
 #ifdef _WIN32
 				closesocket(ctx->fds[i]);
 #else
@@ -274,7 +274,7 @@ int rfc6555_connect(rfc6555_ctx *ctx, int sockfd, struct addrinfo **rp)
 			if (so_error == 0) {
 				/* connection succeeded */
 				fd = ctx->fds[i];
-				ctx->successful_fd = i;
+				ctx->successful_fd_idx = i;
 				break;
 			}
 
@@ -294,8 +294,8 @@ int rfc6555_connect(rfc6555_ctx *ctx, int sockfd, struct addrinfo **rp)
 		}
 	}
 
-	if (-1 != ctx->successful_fd) {
-		i = ctx->successful_fd;
+	if (-1 != ctx->successful_fd_idx) {
+		i = ctx->successful_fd_idx;
 		fd = ctx->fds[i];
 #ifdef _WIN32
 		/* Always reset to blocking mode on Windows. */
