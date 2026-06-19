@@ -230,10 +230,22 @@ int rfc6555_connect(rfc6555_ctx *ctx, int sockfd, struct addrinfo **rp)
 		FD_ZERO(&errorfds);
 	}
 
-	if(select(maxfd+1, &readfds, &writefds, &errorfds, timeoutp) <= 0)  {
-		if(0 == errno) {
+	int ret;
+	#ifdef _WIN32
+	ret = select(0, &readfds, &writefds, &errorfds, timeoutp);
+	#else
+	ret = select(maxfd + 1, &readfds, &writefds, &errorfds, timeoutp);
+	#endif
+	if (ret <= 0)  {
+#ifdef _WIN32
+		if (ret == 0) {
+			WSASetLastError(WSAETIMEDOUT);
+		}
+#else
+		if (errno == 0) {
 			errno = ETIMEDOUT;
 		}
+#endif
 		return -1;
 	}
 
