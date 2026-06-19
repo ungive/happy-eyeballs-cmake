@@ -23,6 +23,7 @@ typedef struct {
 	size_t len;
 	size_t max_len;
 	int successful_fd_idx;
+	int delay_ms;
 } rfc6555_ctx;
 
 /* Create context */
@@ -42,5 +43,12 @@ int rfc6555_reorder(struct addrinfo *result);
  * to match the returned socket.
  */
 int rfc6555_connect(rfc6555_ctx *ctx, int sockfd, struct addrinfo **rp);
+
+/* Sets the delay in milliseconds after which to try to connect to the next
+ * address. If not set explicitly, a sane default value is used. Returns the new
+ * delay, if the new value was set successfully, or -1 on failure. Fails, if the
+ * context is null or the passed delay is a negative value.
+ */
+int rfc6555_delay(rfc6555_ctx *ctx, int delay_ms);
 
 #endif /*__RFC6555_H */

@@ -44,6 +44,7 @@ int connect_host(char *host, char *service) {
 
 	rfc6555_reorder(result);
 	ctx = rfc6555_context_create();
+	rfc6555_delay(ctx, 250);
 
 	for (rp = result; rp != NULL; rp = rp->ai_next) {
 		fprintf(stderr, "connecting using rp %p (%s, af %d) ...",

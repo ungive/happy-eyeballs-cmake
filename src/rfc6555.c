@@ -26,7 +26,7 @@
  */
 #define MIN_CTX_LEN 4
 
-#define CONNECT_TIMEOUT_MS 300
+#define DEFAULT_CONNECT_DELAY_MS 300
 
 static int rfc6555_context_append(rfc6555_ctx *ctx, int fd, struct addrinfo *rp, int flags);
 static int rfc6555_context_grow(rfc6555_ctx *ctx);
@@ -44,6 +44,7 @@ rfc6555_ctx *rfc6555_context_create()
 	ctx->len = 0;
 	ctx->max_len = 0;
 	ctx->successful_fd_idx = -1;
+	ctx->delay_ms = DEFAULT_CONNECT_DELAY_MS;
 
 	if(rfc6555_context_grow(ctx) < 0) {
 		rfc6555_context_destroy(ctx);
@@ -51,6 +52,18 @@ rfc6555_ctx *rfc6555_context_create()
 	}
 
 	return ctx;
+}
+
+int rfc6555_delay(rfc6555_ctx *ctx, int delay_ms)
+{
+	if (!ctx) {
+		return -1;
+	}
+	if (delay_ms < 0) {
+		return -1;
+	}
+	ctx->delay_ms = delay_ms;
+	return ctx->delay_ms;
 }
 
 /* Append an fd and associated rp to the context.
@@ -180,7 +193,7 @@ int rfc6555_connect(rfc6555_ctx *ctx, int sockfd, struct addrinfo **rp)
 	int flags = 0;
 	int i;
 	fd_set readfds, writefds, errorfds;
-	struct timeval timeout = { 0, CONNECT_TIMEOUT_MS * 1000 }, *timeoutp = &timeout;
+	struct timeval timeout = { 0, ctx->delay_ms * 1000 }, *timeoutp = &timeout;
 
 #ifdef _WIN32
 	u_long mode = 1;
